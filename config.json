@@ -1,0 +1,17 @@
+{
+  "ask": "HOW SQUIDWARD ARE YOU TODAY?\nhttps://i.imgur.com/rj7OTrS.png",
+  "error": "https://static.wikia.nocookie.net/spongebob/images/1/15/Missing_Identity_title_card.png/revision/latest/scale-to-width-down/350?cb=20190715010905",
+  "squids": {
+    "error": "https://static.wikia.nocookie.net/spongebob/images/1/15/Missing_Identity_title_card.png/revision/latest/scale-to-width-down/350?cb=20190715010905",
+    "1": "https://i.imgur.com/XGGTUVH.png",
+    "2": "https://i.imgur.com/uTvKBuu.png",
+    "3": "https://i.imgur.com/OGf6UKI.png",
+    "4": "https://i.imgur.com/yGwXqBV.png",
+    "5": "https://i.imgur.com/71LQVZy.png",
+    "6": "https://i.imgur.com/gYQEZ8H.png",
+    "7": "https://i.imgur.com/Fn4Jh6k.png",
+    "8": "https://i.imgur.com/MJtMXUz.png",
+    "9": "https://i.imgur.com/avCTS7P.png"
+  },
+  "bot_prefix" : "!squid "
+}
