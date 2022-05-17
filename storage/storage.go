@@ -1,7 +1,7 @@
-package main
+package storage
 
 type Storage interface {
-	StoreSquidForuserId(userId string, squid string) error
+	StoreSquidForUserId(userId, squid string) error
 	GetSquidForUserId(userId string) (string, error)
 	IsReactableMessage(messageId string) (bool, error)
 	StoreReactableMessage(messageId string) error

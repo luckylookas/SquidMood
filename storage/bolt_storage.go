@@ -1,6 +1,9 @@
-package main
+package storage
 
-import "github.com/boltdb/bolt"
+import (
+	"fmt"
+	"github.com/boltdb/bolt"
+)
 
 type BoltStorage struct {
 	db *bolt.DB
@@ -15,13 +18,13 @@ func (storage BoltStorage) Close() {
 	storage.db.Close()
 }
 
-func (storage BoltStorage) StoreSquidForuserId(userId string, squid string) error {
+func (storage BoltStorage) StoreSquidForUserId(userId string, squid string) error {
 	return storage.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte("squidstate"))
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(userId), []byte(squid))
+		return bucket.Put([]byte(fmt.Sprintf("%s", userId)), []byte(squid))
 	})
 }
 
@@ -31,7 +34,7 @@ func (storage BoltStorage) GetSquidForUserId(userId string) (squid string, err e
 		if err != nil {
 			return err
 		}
-		squid = string(bucket.Get([]byte(userId)))
+		squid = string(bucket.Get([]byte(fmt.Sprintf("%s", userId))))
 		return nil
 	})
 }

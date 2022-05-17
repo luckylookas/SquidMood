@@ -3,7 +3,6 @@ module SquidMood
 go 1.18
 
 require (
-	github.com/boltdb/bolt v1.3.1
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/spf13/viper v1.11.0
 )

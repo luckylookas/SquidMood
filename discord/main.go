@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"storage"
 	"strconv"
 	"strings"
 	"syscall"
@@ -60,12 +61,17 @@ func ReadConfig() (*configStruct, error) {
 }
 
 func main() {
+	store, err := storage.New("squid.bolt")
+	if err != nil {
+		panic(err)
+	}
+
 	config, err := ReadConfig()
 	if err != nil {
 		panic(err)
 	}
 
-	closeFunc, err := Start(config)
+	closeFunc, err := Start(config, store)
 	if err != nil {
 		panic(err)
 	}
@@ -82,13 +88,7 @@ func main() {
 	<-make(chan struct{})
 }
 
-func Start(config *configStruct) (func(), error) {
-	storage, err := New("squid.bolt")
-
-	if err != nil {
-		return nil, err
-	}
-
+func Start(config *configStruct, store storage.Storage) (func(), error) {
 	goBot, err := discordgo.New("Bot " + config.Token)
 
 	if err != nil {
@@ -100,61 +100,59 @@ func Start(config *configStruct) (func(), error) {
 		return nil, err
 	}
 
-	goBot.AddHandler(createMessageHandler(u.ID, config, storage))
-	goBot.AddHandler(createReactionHandler(config, storage))
+	goBot.AddHandler(createMessageHandler(u.ID, config, store))
+	goBot.AddHandler(createReactionHandler(config, store))
 
 	return func() {
 		goBot.Close()
-		storage.Close()
+		store.Close()
 	}, goBot.Open()
 
 }
 
-func createSender(s *discordgo.Session) func(channelId, content string) *discordgo.Message {
-	return func(channelId, content string) *discordgo.Message {
+func createSender(s *discordgo.Session, channelId string) func(content string) *discordgo.Message {
+	return func(content string) *discordgo.Message {
 		msg, err := s.ChannelMessageSend(channelId, content)
 		logError(err)
 		return msg
 	}
 }
 
-func createReactionHandler(config *configStruct, storage Storage) func(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
+func createReactionHandler(config *configStruct, storage storage.Storage) func(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
 	return func(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
-		send := createSender(s)
+		send := createSender(s, r.ChannelID)
 		if ok, _ := storage.IsReactableMessage(r.MessageID); !ok {
 			return
 		}
-
 		squid := Command(r.Emoji.Name[0:1])
-
 		if squid.isSquidChoice() {
-			storage.StoreSquidForuserId(r.UserID, string(squid))
+			logError(storage.StoreSquidForUserId(r.UserID, string(squid)))
 		}
-		send(r.ChannelID, fmt.Sprintf("@here\n%s FEELS THIS SQUIDWARD TODAY \n %s", r.Member.Mention(), config.Squids[string(squid)]))
+		send(fmt.Sprintf("@here\n%s FEELS THIS SQUIDWARD TODAY \n %s", r.Member.Mention(), config.Squids[string(squid)]))
 	}
 }
 
-func createMessageHandler(BotId string, config *configStruct, storage Storage) func(s *discordgo.Session, m *discordgo.MessageCreate) {
+func createMessageHandler(BotId string, config *configStruct, storage storage.Storage) func(s *discordgo.Session, m *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
-
-		send := createSender(s)
+		send := createSender(s, m.ChannelID)
 		if m.Author.ID == BotId || !strings.HasPrefix(m.Content, config.BotPrefix) {
 			return
 		}
-
 		command := Command(strings.TrimPrefix(m.Content, config.BotPrefix))
 
 		if command.isAsk() {
-			msg := send(m.ChannelID, config.Ask)
+			msg := send(config.Ask)
 			if msg == nil {
 				return
 			}
 			logError(storage.StoreReactableMessage(msg.ID))
+			return
 		}
 
 		if command.isSquidChoice() {
-			logError(storage.StoreSquidForuserId(m.Author.ID, string(command)))
-			send(m.ChannelID, fmt.Sprintf("@here\n%s FEELS THIS SQUIDWARD TODAY \n %s", m.Author.Mention(), config.Squids[string(command)]))
+			logError(storage.StoreSquidForUserId(m.Author.ID, string(command)))
+			send(fmt.Sprintf("@here\n%s FEELS THIS SQUIDWARD TODAY \n %s", m.Author.Mention(), config.Squids[string(command)]))
+			return
 		}
 
 		if len(m.Mentions) > 0 {
@@ -165,11 +163,12 @@ func createMessageHandler(BotId string, config *configStruct, storage Storage) f
 				squid, err := storage.GetSquidForUserId(user.ID)
 				if err != nil {
 					logError(err)
-					send(m.ChannelID, fmt.Sprintf("%s\n%s HAS NOT TOLD ME YET\n%s", m.Author.Mention(), user.Mention(), config.Squids["error"]))
+					send(fmt.Sprintf("%s\n%s\n%s", m.Author.Mention(), user.Mention(), config.Squids["error"]))
 				} else {
-					send(m.ChannelID, fmt.Sprintf("%s\n%s FEELS THIS SQUIDWARD TODAY\n%s", m.Author.Mention(), user.Mention(), config.Squids[squid]))
+					send(fmt.Sprintf("%s\n%s FEELS THIS SQUIDWARD TODAY\n%s", m.Author.Mention(), user.Mention(), config.Squids[squid]))
 				}
 			}
+			return
 		}
 	}
 }
