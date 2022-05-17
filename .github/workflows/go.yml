@@ -21,3 +21,7 @@ jobs:
     - name: Build
       run: go build -o squidmood ./discord
 
+    - uses: actions/upload-artifact@v3
+      with:
+        name: squidmood
+        path: ./squidmood
