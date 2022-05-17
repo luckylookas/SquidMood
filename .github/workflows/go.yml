@@ -19,7 +19,5 @@ jobs:
         go-version: 1.18
 
     - name: Build
-      run: cd discord;go build -v ./... -o ../squidmood
+      run: go build -o squidmood ./discord
 
-    - name: Test
-      run: go test -v ./...
