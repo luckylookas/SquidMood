@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
 )
@@ -30,9 +31,9 @@ func (storage BoltStorage) StoreSquidForUserId(userId string, squid string) erro
 
 func (storage BoltStorage) GetSquidForUserId(userId string) (squid string, err error) {
 	return squid, storage.db.View(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("squidstate"))
-		if err != nil {
-			return err
+		bucket := tx.Bucket([]byte("squidstate"))
+		if bucket == nil {
+			return errors.New("no squid states yet")
 		}
 		squid = string(bucket.Get([]byte(fmt.Sprintf("%s", userId))))
 		return nil
@@ -41,9 +42,9 @@ func (storage BoltStorage) GetSquidForUserId(userId string) (squid string, err e
 
 func (storage BoltStorage) IsReactableMessage(messageId string) (ok bool, err error) {
 	return ok, storage.db.View(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("askstate"))
-		if err != nil {
-			return err
+		bucket := tx.Bucket([]byte("askstate"))
+		if bucket == nil {
+			return errors.New("no ask states yet")
 		}
 		ok = string(bucket.Get([]byte(messageId))) != ""
 		return nil
